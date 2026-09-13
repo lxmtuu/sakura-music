@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng ký — Sakura Music Shop</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="account">
+  <div id="header"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <form class="auth-form" id="regForm">
+        <h3>💗 Tạo tài khoản</h3>
+        <p class="muted">Tham gia thế giới âm nhạc Sakura chỉ trong 30 giây</p>
+        <div class="field">
+          <label>Họ và tên</label>
+          <input name="name" required placeholder="Nguyễn Sakura" />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="ban@example.com" />
+        </div>
+        <div class="field">
+          <label>Số điện thoại</label>
+          <input name="phone" placeholder="09xx xxx xxx" />
+        </div>
+        <div class="field">
+          <label>Địa chỉ</label>
+          <input name="address" placeholder="Số nhà, đường, tỉnh/thành phố" />
+        </div>
+        <div class="field">
+          <label>Mật khẩu (ít nhất 6 ký tự)</label>
+          <input type="password" name="password" required minlength="6" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-purple btn-block" type="submit">🎀 Đăng ký thành viên</button>
+        <div class="auth-switch">Đã có tài khoản? <a href="login.html">Đăng nhập ngay 🎵</a></div>
+      </form>
+      <div class="auth-side">
+        <div style="font-size:46px">🌸🎹</div>
+        <h2>Đăng ký thành viên, nhận ngàn ưu đãi!</h2>
+        <p>Gia nhập hội những người yêu nhạc cụ tại Sakura Music Shop với những đặc quyền dễ thương:</p>
+        <div class="perk">💖 Voucher 100.000đ cho đơn hàng đầu tiên</div>
+        <div class="perk">🎂 Quà sinh nhật bất ngờ mỗi năm</div>
+        <div class="perk">🎼 Ưu tiên trải nghiệm sản phẩm mới</div>
+        <div class="perk">🔔 Bảo hành mở rộng thêm 3 tháng</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="js/common.js"></script>
+  <script>
+    const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = '⏳ Đang tạo tài khoản...';
+      try {
+        const payload = Object.fromEntries(fd.entries());
+        const { user } = await API.post('/api/auth/register', payload);
+        toast('Chào mừng ' + user.name + ' đến với Sakura! 🌸', 'success');
+        setTimeout(() => (location.href = redirect), 800);
+      } catch (err) {
+        toast(err.message, 'error');
+        btn.disabled = false; btn.textContent = '🎀 Đăng ký thành viên';
+      }
+    });
+  </script>
+</body>
+</html>

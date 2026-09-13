@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập — Sakura Music Shop</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="account">
+  <div id="header"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-side">
+        <div style="font-size:46px">🎸🌸</div>
+        <h2>Chào mừng bạn quay lại với Sakura Music!</h2>
+        <p>Đăng nhập để theo dõi đơn hàng, tích điểm thành viên và nhận thật nhiều ưu đãi dễ thương nào!</p>
+        <div class="perk">🎁 Tích điểm đổi quà mỗi đơn hàng</div>
+        <div class="perk">🎵 Giảm giá riêng cho thành viên</div>
+        <div class="perk">📦 Theo dõi &amp; quản lý đơn dễ dàng</div>
+      </div>
+      <form class="auth-form" id="loginForm">
+        <h3>🔐 Đăng nhập</h3>
+        <p class="muted">Nhập thông tin tài khoản của bạn</p>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="ban@example.com" />
+        </div>
+        <div class="field">
+          <label>Mật khẩu</label>
+          <input type="password" name="password" required placeholder="••••••••" />
+        </div>
+        <div style="text-align:right;margin:-6px 0 14px">
+          <a href="forgot-password.html" style="font-size:13.5px;color:var(--pink-deep);font-weight:700">🔑 Quên mật khẩu?</a>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">🌸 Đăng nhập</button>
+        <div style="background:#fdf2ff;border-radius:12px;padding:12px 14px;margin-top:16px;font-size:13px;color:var(--ink-soft);line-height:1.7">
+          <b>🎀 Tài khoản dùng thử:</b><br>
+          👑 Admin: <b>admin@sakura.vn</b> / <b>admin123</b><br>
+          👤 Khách: <b>user@sakura.vn</b> / <b>123456</b>
+        </div>
+        <div class="auth-switch">Chưa có tài khoản? <a href="register.html">Đăng ký ngay 💗</a></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="js/common.js"></script>
+  <script>
+    const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = '⏳ Đang đăng nhập...';
+      try {
+        const { user } = await API.post('/api/auth/login', { email: fd.get('email'), password: fd.get('password') });
+        toast('Xin chào ' + user.name + '! 🌸', 'success');
+        setTimeout(() => {
+          if (user.role === 'admin' && !new URLSearchParams(location.search).get('redirect'))
+            location.href = 'admin.html';
+          else location.href = redirect;
+        }, 700);
+      } catch (err) {
+        toast(err.message, 'error');
+        btn.disabled = false; btn.textContent = '🌸 Đăng nhập';
+      }
+    });
+  </script>
+</body>
+</html>

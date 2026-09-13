@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trang quản trị — Sakura Music Shop</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="admin">
+
+  <!-- Giao dien admin (chi hien khi da dang nhap bang tai khoan quan tri) -->
+  <div class="admin-body" id="adminApp" style="display:none">
+    <aside class="admin-side">
+      <div class="logo"><span class="logo-icon">🎵</span><span>Sakura<b>&nbsp;Admin</b></span></div>
+      <nav class="admin-nav">
+        <button class="active" data-view="dashboard">📊 Tổng quan</button>
+        <button data-view="orders">📦 Đơn hàng <span id="navPending" style="margin-left:auto;background:#ff5f9e;color:#fff;border-radius:999px;padding:1px 9px;font-size:11px;display:none"></span></button>
+        <button data-view="products">🎸 Sản phẩm</button>
+        <button data-view="users">👤 Người dùng</button>
+        <button data-view="payment">💳 Cấu hình thanh toán</button>
+      </nav>
+      <div class="admin-foot">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avt" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;font-weight:700" id="adminAvt">A</div>
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:14px" id="adminName">Admin</div>
+            <div style="font-size:12px;opacity:.75">Quản trị viên</div>
+          </div>
+        </div>
+        <a href="index.html" style="display:block;margin-top:14px;color:rgba(255,255,255,.85);font-size:13px">🏠 Về trang bán hàng</a>
+        <button onclick="adminLogout()" style="margin-top:8px;background:rgba(255,255,255,.15);color:#fff;padding:8px 16px;border-radius:999px;font-weight:600;font-size:13px;width:100%">🚪 Đăng xuất</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <!-- TONG QUAN -->
+      <section id="view-dashboard">
+        <div class="admin-head"><h1>📊 Tổng quan kinh doanh</h1><span style="color:var(--ink-soft);font-size:13px" id="today"></span></div>
+        <div class="stat-grid" id="statGrid"></div>
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:22px" class="dash-charts">
+          <div class="panel">
+            <h3>💜 Doanh thu theo danh mục</h3>
+            <canvas id="catChart" height="180"></canvas>
+          </div>
+          <div class="panel">
+            <h3>🌸 Trạng thái đơn hàng</h3>
+            <div id="statusBars"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>🕐 Đơn hàng mới nhất</h3>
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Tổng</th><th>Thanh toán</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+              <tbody id="latestBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- DON HANG -->
+      <section id="view-orders" style="display:none">
+        <div class="admin-head">
+          <h1>📦 Quản lý đơn hàng</h1>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <select class="select-cute" id="orderFilter">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending">Chờ thanh toán</option>
+              <option value="confirmed">Chờ xác nhận CK</option>
+              <option value="paid">Đã thanh toán</option>
+              <option value="shipping">Đang giao</option>
+              <option value="done">Hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
+            </select>
+            <a class="btn btn-purple btn-sm" href="/api/admin/orders.csv" id="csvBtn">⬇️ Xuất CSV</a>
+          </div>
+        </div>
+        <div class="panel table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Liên hệ</th><th>Sản phẩm</th><th>Tổng</th><th>TT</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SAN PHAM -->
+      <section id="view-products" style="display:none">
+        <div class="admin-head">
+          <h1>🎸 Quản lý sản phẩm</h1>
+          <button class="btn btn-primary" onclick="openProductModal()">➕ Thêm sản phẩm</button>
+        </div>
+        <div class="panel table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Ảnh</th><th>Tên</th><th>Danh mục</th><th>Giá</th><th>Kho</th><th>Đánh giá</th><th>Thao tác</th></tr></thead>
+            <tbody id="productsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- NGUOI DUNG -->
+      <section id="view-users" style="display:none">
+        <div class="admin-head"><h1>👤 Quản lý người dùng</h1></div>
+        <div class="panel table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Số đơn</th><th>Tổng chi</th><th>Thao tác</th></tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CAU HINH THANH TOAN -->
+      <section id="view-payment" style="display:none">
+        <div class="admin-head"><h1>💳 Cấu hình thanh toán &amp; mạng xã hội</h1></div>
+        <div class="glass-card" id="paymentPanel" style="max-width:760px"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal chung -->
+  <div class="modal-mask" id="modalMask">
+    <div class="modal" id="modalBox"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

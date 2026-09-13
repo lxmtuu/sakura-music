@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập quản trị — Sakura Music Shop</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .admin-login-card {
+      width: min(430px, 100%);
+      background: rgba(255,255,255,.95);
+      border-radius: 26px;
+      padding: 40px 36px;
+      box-shadow: 0 30px 70px rgba(76,42,110,.4);
+      border: 1.5px solid #ffe0ee;
+      text-align: center;
+      animation: heroIn .7s ease both;
+    }
+    .admin-crown {
+      width: 84px; height: 84px; margin: 0 auto 14px; border-radius: 50%;
+      background: var(--grad-purple); display: grid; place-items: center;
+      font-size: 40px; box-shadow: 0 14px 30px rgba(123,77,255,.45);
+      animation: logoSpin 5s ease-in-out infinite;
+    }
+    .admin-login-card h1 { font-size: 24px; margin-bottom: 4px; }
+    .admin-login-card .muted { color: var(--ink-soft); font-size: 13.5px; margin-bottom: 22px; }
+    .admin-login-card form { text-align: left; }
+    .admin-note {
+      margin-top: 16px; background: #fdf2ff; border-radius: 12px; padding: 12px 14px;
+      font-size: 12.5px; color: var(--ink-soft); line-height: 1.8; text-align: left;
+    }
+    .back-link { display: inline-block; margin-top: 18px; font-size: 13.5px; color: var(--purple-deep); font-weight: 600; }
+  </style>
+</head>
+<body data-page="admin">
+
+  <div class="admin-login-wrap">
+    <div class="admin-login-card">
+      <div class="admin-crown">👑</div>
+      <h1>Khu vực quản trị</h1>
+      <p class="muted">🌸 Sakura Music Shop — chỉ dành cho quản trị viên</p>
+      <form id="adminLoginForm">
+        <div class="field">
+          <label>📧 Email quản trị</label>
+          <input name="email" type="email" required value="admin@sakura.vn" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label>🔒 Mật khẩu</label>
+          <input name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-purple btn-block" type="submit">🔓 Đăng nhập trang quản trị</button>
+        <div style="text-align:right;margin-top:10px">
+          <a href="forgot-password.html" style="font-size:13px;color:var(--pink-deep);font-weight:600">🔑 Quên mật khẩu?</a>
+        </div>
+      </form>
+      <div class="admin-note">
+        <b>🎀 Tài khoản quản trị mẫu:</b><br>
+        Email: <b>admin@sakura.vn</b> &nbsp;•&nbsp; Mật khẩu: <b>admin123</b><br>
+        ⚠️ Tài khoản khách hàng thường <b>không thể</b> truy cập khu vực này.
+        Sai mật khẩu 5 lần sẽ bị tạm khóa 5 phút.
+      </div>
+      <a class="back-link" href="index.html">🏠 Về trang bán hàng</a>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script>
+    initFx();
+    // Neu da dang nhap admin san thi vao thang
+    (async () => {
+      try {
+        const { user } = await API.get('/api/auth/me');
+        if (user && user.role === 'admin') location.replace('admin.html');
+      } catch {}
+    })();
+
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = '⏳ Đang kiểm tra...';
+      try {
+        const { user } = await API.post('/api/auth/login', {
+          email: fd.get('email'), password: fd.get('password'),
+        });
+        if (user.role !== 'admin') {
+          toast('🚫 Tài khoản này không có quyền quản trị!', 'error');
+          btn.disabled = false; btn.textContent = '🔓 Đăng nhập trang quản trị';
+          return;
+        }
+        toast('Xin chào quản trị viên 👑🌸', 'success');
+        const redirect = new URLSearchParams(location.search).get('redirect') || 'admin.html';
+        setTimeout(() => (location.href = redirect), 700);
+      } catch (err) {
+        toast(err.message || 'Đăng nhập thất bại', 'error');
+        btn.disabled = false; btn.textContent = '🔓 Đăng nhập trang quản trị';
+      }
+    });
+  </script>
+</body>
+</html>

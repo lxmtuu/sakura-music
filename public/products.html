@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sản phẩm — Sakura Music Shop 🌸</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="products">
+  <div id="header"></div>
+
+  <div class="page-banner">
+    <div class="container">
+      <h1>🎶 Cửa Hàng Nhạc Cụ</h1>
+      <div class="crumbs"><a href="index.html">Trang chủ</a> / <span id="crumbCat">Tất cả sản phẩm</span></div>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container shop-layout">
+      <aside class="shop-sidebar">
+        <h4>🎀 Danh mục</h4>
+        <ul class="cat-filter" id="catFilter"></ul>
+        <h4 style="margin-top:22px">🔎 Bộ lọc nhanh</h4>
+        <button class="btn btn-ghost btn-block btn-sm" id="resetBtn" style="margin-top:6px">Xóa bộ lọc</button>
+      </aside>
+
+      <div>
+        <div class="shop-toolbar">
+          <span class="count" id="resultCount"></span>
+          <select class="select-cute" id="sortSel">
+            <option value="rating">⭐ Nổi bật nhất</option>
+            <option value="price-asc">💰 Giá: Thấp → Cao</option>
+            <option value="price-desc">💎 Giá: Cao → Thấp</option>
+          </select>
+        </div>
+        <div class="product-grid" id="grid">
+          <div class="empty-state"><div class="big">🎶</div>Đang tải...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer"></div>
+  <script src="js/common.js"></script>
+  <script src="js/products.js"></script>
+</body>
+</html>

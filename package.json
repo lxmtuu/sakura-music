@@ -1,0 +1,14 @@
+{
+  "name": "sakura-music-shop",
+  "version": "1.0.0",
+  "description": "Website ban nhac cu phong cach anime (Node.js + Express)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2"
+  }
+}
