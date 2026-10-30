@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "node vercel-preview/build.js",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci --ignore-scripts"
+}
