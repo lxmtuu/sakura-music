@@ -1,14 +1,16 @@
 /* Tai khoan khach hang */
 let ME = null;
+let currentOrders = [];
 
 const STATUS_FLOW = ['pending', 'confirmed', 'paid', 'shipping', 'done'];
 
-function statusPill(s) {
+function statusPill(s, paymentMethod) {
   const labels = {
     pending: 'Chờ thanh toán', confirmed: 'Chờ shop xác nhận CK',
     paid: 'Đã thanh toán', shipping: 'Đang giao hàng', done: 'Hoàn thành', cancelled: 'Đã hủy',
   };
-  return `<span class="status-pill st-${s}">${labels[s] || s}</span>`;
+  const label = s === 'confirmed' && paymentMethod === 'cod' ? 'Chờ xử lý COD' : (labels[s] || s);
+  return `<span class="status-pill st-${escapeHtml(s)}">${escapeHtml(label)}</span>`;
 }
 
 function orderCard(o) {
@@ -20,11 +22,11 @@ function orderCard(o) {
         <b>Đơn ${o.code}</b> • ${fmtDate(o.createdAt)}<br>
         <small style="color:var(--ink-soft)">${payLabel}</small>
       </div>
-      ${statusPill(o.status)}
+      ${statusPill(o.status, o.paymentMethod)}
     </div>
     ${o.items.map((i) => `
       <div class="order-line">
-        <img src="${i.image}" onerror="this.onerror=null;this.src=fallbackImg()">
+        <img src="${escapeHtml(i.image)}" onerror="this.onerror=null;this.src=fallbackImg()">
         <div style="flex:1"><div style="font-size:13.5px">${escapeHtml(i.name)}</div>
         <small style="color:var(--ink-soft)">SL: ${i.qty} × ${vnd(i.price)}</small></div>
         <b style="font-size:13.5px">${vnd(i.price * i.qty)}</b>
@@ -32,15 +34,16 @@ function orderCard(o) {
     <div class="order-foot">
       <div>Tổng cộng: <b style="color:var(--pink-deep);font-size:17px">${vnd(o.total)}</b></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${o.status === 'pending' ? `<button class="btn btn-purple btn-sm" onclick='showQR(${JSON.stringify(JSON.stringify(o))})'>📲 Thanh toán ngay</button>` : ''}
+        ${o.status === 'pending' ? `<button class="btn btn-purple btn-sm" onclick="showQR('${o.id}')">📲 Thanh toán ngay</button>` : ''}
         ${['pending', 'confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')">Hủy đơn</button>` : ''}
       </div>
     </div>
   </div>`;
 }
 
-function showQR(jsonStr) {
-  const o = JSON.parse(jsonStr);
+function showQR(id) {
+  const o = currentOrders.find((order) => order.id === id);
+  if (!o) return;
   document.querySelector('#qrModal .modal').innerHTML = `
     <h3>📲 Quét mã QR — Đơn ${o.code}</h3>
     <div class="qr-box" style="margin-top:0">
@@ -93,6 +96,7 @@ window.copyText = copyText;
 async function loadOrders() {
   const wrap = document.getElementById('tabOrders');
   const { orders } = await API.get('/api/orders/me');
+  currentOrders = orders;
   if (!orders.length) {
     wrap.innerHTML = `<div class="empty-state"><div class="big">🎐</div>Bạn chưa có đơn hàng nào.<br>
       <a href="products.html" class="btn btn-primary" style="margin-top:14px">🎵 Mua sắm ngay</a></div>`;
@@ -124,6 +128,7 @@ function renderProfile(u) {
     try {
       const { user } = await API.put('/api/auth/profile', payload);
       ME = user;
+      if (payload.password) { location.href = 'login.html'; return; }
       toast('Cập nhật hồ sơ thành công! 🌸', 'success');
     } catch (err) { toast(err.message, 'error'); }
   });

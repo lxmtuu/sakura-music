@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <input id="qtyInput" value="1" readonly />
               <button type="button" onclick="changeQty(1)">+</button>
             </div>
-            <button class="btn btn-ghost" onclick="addCart(false)">🛒 Thêm vào giỏ</button>
+            <button class="btn btn-ghost" onclick="addCart(false)" ${p.stock <= 0 ? 'disabled' : ''}>🛒 Thêm vào giỏ</button>
             <button class="btn btn-primary" onclick="addCart(true)" ${p.stock <= 0 ? 'disabled' : ''}>💖 Mua ngay</button>
           </div>
         </div>

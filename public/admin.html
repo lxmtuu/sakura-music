@@ -38,6 +38,22 @@
       <section id="view-dashboard">
         <div class="admin-head"><h1>📊 Tổng quan kinh doanh</h1><span style="color:var(--ink-soft);font-size:13px" id="today"></span></div>
         <div class="stat-grid" id="statGrid"></div>
+        <div class="panel" id="backupPanel">
+          <h3>💾 Sao lưu tự động</h3>
+          <p id="backupStatus" role="status">Đang kiểm tra...</p>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:6px">Bản sao nằm trên cùng máy, cần sao chép sang nơi lưu trữ riêng và kiểm tra phục hồi định kỳ.</p>
+          <button type="button" class="btn btn-ghost btn-sm" id="refreshBackup" style="margin-top:10px">🔄 Kiểm tra lại</button>
+        </div>
+        <div class="panel" id="emailPanel">
+          <h3>✉️ Email khôi phục mật khẩu</h3>
+          <p id="emailStatus" role="status">Đang kiểm tra...</p>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:6px">SMTP chấp nhận thư không đảm bảo thư đã tới hộp nhận. Theo dõi log và thử gửi thật định kỳ.</p>
+        </div>
+        <div class="panel" id="proxyPanel">
+          <h3>🌐 Địa chỉ khách hàng sau proxy</h3>
+          <p id="proxyStatus" role="status">Đang kiểm tra...</p>
+          <p style="font-size:12px;color:var(--ink-soft);margin-top:6px">Chỉ tin các proxy do bạn quản lý; cấu hình sai có thể khiến IP bị giả mạo hoặc khách bị giới hạn chung.</p>
+        </div>
         <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:22px" class="dash-charts">
           <div class="panel">
             <h3>💜 Doanh thu theo danh mục</h3>

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Sakura offsite backup every 15 minutes
+
+[Timer]
+OnCalendar=*:0/15
+Persistent=true
+Unit=sakura-offsite-backup.service
+
+[Install]
+WantedBy=timers.target

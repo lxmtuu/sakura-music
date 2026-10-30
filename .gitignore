@@ -2,3 +2,22 @@ node_modules/
 data/db.json
 *.log
 .DS_Store
+
+# Sao luu chua thong tin rieng tu
+backups/
+data/.writer.lock
+data/db.pre-restore-*.json
+data/.restore-*.tmp
+data/db.json.*.tmp
+
+data/db.sqlite*
+data/auto-backups/
+data/.sqlite-init-*.tmp*
+data/db.pre-restore-*.sqlite*
+data/.restore-*.sqlite*
+
+# Cau hinh va thong tin dang nhap deployment
+.env
+.env.*
+!.env.example
+data/.offsite-backup.lock

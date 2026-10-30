@@ -35,11 +35,6 @@
           <a href="forgot-password.html" style="font-size:13.5px;color:var(--pink-deep);font-weight:700">🔑 Quên mật khẩu?</a>
         </div>
         <button class="btn btn-primary btn-block" type="submit">🌸 Đăng nhập</button>
-        <div style="background:#fdf2ff;border-radius:12px;padding:12px 14px;margin-top:16px;font-size:13px;color:var(--ink-soft);line-height:1.7">
-          <b>🎀 Tài khoản dùng thử:</b><br>
-          👑 Admin: <b>admin@sakura.vn</b> / <b>admin123</b><br>
-          👤 Khách: <b>user@sakura.vn</b> / <b>123456</b>
-        </div>
         <div class="auth-switch">Chưa có tài khoản? <a href="register.html">Đăng ký ngay 💗</a></div>
       </form>
     </div>
@@ -48,7 +43,7 @@
   <div id="footer"></div>
   <script src="js/common.js"></script>
   <script>
-    const redirect = new URLSearchParams(location.search).get('redirect') || 'index.html';
+    const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'));
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);

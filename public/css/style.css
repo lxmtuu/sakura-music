@@ -138,6 +138,7 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
   background: var(--grad-pink);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+.nav-links .mobile-search { display: none; }
 .nav-links { display: flex; gap: 4px; margin-left: 8px; }
 .nav-links a {
   padding: 9px 15px; border-radius: 999px; font-weight: 600; font-size: 15px;
@@ -630,6 +631,16 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
   .search-box { min-width: 0; width: 130px; }
 }
 @media (max-width: 620px) {
+  .nav { gap: 6px; }
+  .nav .logo { font-size: 18px; gap: 5px; white-space: nowrap; }
+  .nav .logo-icon { width: 32px; height: 32px; font-size: 18px; flex-shrink: 0; }
+  .nav-right { gap: 3px; }
+  .nav-right .icon-btn { width: 36px; height: 36px; }
+  .nav-right .user-chip { padding: 2px; }
+  .nav-right a[title="Trang quản trị"] { display: none; }
+  .nav-right .search-box { display: none; }
+  .nav-links .mobile-search { display: flex; width: 100%; }
+  .nav-right .user-chip .tb-hide { display: none; }
   .hero h1 { font-size: 31px; }
   .section { padding: 44px 0; }
   .section-title h2 { font-size: 26px; }
@@ -643,4 +654,7 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
   .admin-main { padding: 18px 14px; }
   .floating-social a { width: 42px; height: 42px; }
   .topbar .tb-hide { display: none; }
+}
+@media (max-width: 360px) {
+  .nav .logo b { display: none; }
 }

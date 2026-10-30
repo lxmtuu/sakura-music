@@ -2,10 +2,99 @@
 const FREE_SHIP_FROM = 2000000;
 const SHIP_FEE = 35000;
 
+// Keep the exact request until its result is known, including across reloads.
+// Data is scoped to the signed-in account on this browser.
+const pendingStorageKey = (user) => 'sakura_pending_order_' + user.id;
+function readPending(user) {
+  const value = localStorage.getItem(pendingStorageKey(user));
+  if (!value) return null;
+  try {
+    const pending = JSON.parse(value);
+    if (!pending || typeof pending.key !== 'string' || !pending.payload || !Array.isArray(pending.payload.items)) throw new Error();
+    return pending;
+  } catch {
+    throw new Error('Không thể đọc yêu cầu đặt hàng trước. Vui lòng kiểm tra đơn hàng hoặc liên hệ cửa hàng trước khi đặt lại.');
+  }
+}
+function clearPending(user, key) {
+  const pending = readPending(user);
+  if (pending && pending.key === key) localStorage.removeItem(pendingStorageKey(user));
+}
+// A browser-wide per-account lock prevents simultaneous submits from stale tabs.
+// Fail closed if Web Locks is unavailable instead of silently allowing a race.
+async function withCheckoutLock(user, action) {
+  if (!navigator.locks || typeof navigator.locks.request !== 'function')
+    throw new Error('Trình duyệt không hỗ trợ khóa thanh toán an toàn. Vui lòng dùng trình duyệt mới qua HTTPS.');
+  return navigator.locks.request('sakura_checkout_' + user.id, { ifAvailable: true }, async (lock) => {
+    if (!lock) throw new Error('Một yêu cầu đặt hàng đang được xử lý ở tab khác. Vui lòng chờ.');
+    return action();
+  });
+}
+function showResolvedPending() {
+  document.getElementById('checkoutRoot').innerHTML = `<div class="glass-card empty-state">
+    <h3>Yêu cầu cũ đã được xử lý ở tab khác</h3>
+    <p>Vui lòng kiểm tra đơn hàng trước khi đặt lại.</p>
+    <a href="account.html" class="btn btn-primary" style="margin-top:16px">Xem đơn hàng</a></div>`;
+}
+function finishOrder(user, pending, order) {
+  // Do not erase items added or changed in another tab while the request was in flight.
+  const current = Cart.all();
+  const original = pending.payload.items.map(({ id, qty }) => ({ id, qty }));
+  if (JSON.stringify(current) === JSON.stringify(original)) Cart.clear();
+  else toast('Giỏ hàng đã thay đổi trong lúc đặt hàng. Vui lòng kiểm tra trước khi đặt tiếp.', 'info');
+  clearPending(user, pending.key);
+  if (order.status !== 'pending' && !(order.paymentMethod === 'cod' && order.status === 'confirmed')) {
+    document.getElementById('checkoutRoot').innerHTML = `<div class="glass-card empty-state">
+      <h3>Đã tìm thấy đơn ${escapeHtml(order.code)}</h3>
+      <p>Trạng thái hiện tại: ${escapeHtml(order.statusLabel)}. Vui lòng xem chi tiết trong tài khoản.</p>
+      <a href="account.html" class="btn btn-primary" style="margin-top:16px">Xem đơn hàng</a></div>`;
+    return;
+  }
+  showSuccess(order);
+}
+async function sendPending(user, pending) {
+  const result = await API.request('/api/orders', {
+    method: 'POST', headers: { 'Idempotency-Key': pending.key, 'X-Checkout-User': user.id }, body: pending.payload,
+  });
+  finishOrder(user, pending, result.order);
+}
+function renderPending(user, pending) {
+  const root = document.getElementById('checkoutRoot');
+  root.innerHTML = `<div class="glass-card empty-state" style="max-width:640px;margin:0 auto">
+    <h3>Đơn hàng trước chưa rõ kết quả</h3>
+    <p style="margin:12px 0">Lần gửi trước có thể đã tạo đơn. Bấm nút dưới để kiểm tra lại;
+      nếu đơn chưa được tạo, hệ thống sẽ tiếp tục đặt theo thông tin cũ, không tạo thêm đơn trùng.</p>
+    <p>Người nhận: <b>${escapeHtml(pending.payload.customerName)}</b> · Tổng: <b>${vnd(pending.payload.expectedTotal)}</b></p>
+    <button id="retryOrder" class="btn btn-primary" style="margin-top:16px">Kiểm tra / tiếp tục đơn cũ</button>
+    <p style="margin-top:12px"><a href="account.html">Xem đơn hàng của tôi</a></p>
+  </div>`;
+  document.getElementById('retryOrder').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await withCheckoutLock(user, async () => {
+        const current = readPending(user);
+        if (!current) { showResolvedPending(); return; }
+        if (current.key !== pending.key) { renderPending(user, current); return; }
+        await sendPending(user, current);
+      });
+    } catch (err) {
+      if (err.code === 'ORDER_REJECTED') {
+        clearPending(user, pending.key);
+        root.innerHTML = `<div class="glass-card empty-state"><h3>Đơn cũ chưa được tạo</h3>
+          <p>${escapeHtml(err.message)}</p><a href="checkout.html" class="btn btn-primary" style="margin-top:16px">Kiểm tra và đặt lại</a></div>`;
+      } else {
+        toast(err.message || 'Chưa kiểm tra được. Vui lòng thử lại.', 'error');
+        button.disabled = false;
+      }
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const root = document.getElementById('checkoutRoot');
+  try {
   const { user } = await API.get('/api/auth/me');
-  const config = await API.get('/api/config');
   const lines = Cart.all();
 
   // Chua dang nhap
@@ -24,6 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  const pending = readPending(user);
+  if (pending) { renderPending(user, pending); return; }
+
   // Gio hang trong
   if (!lines.length) {
     root.innerHTML = `
@@ -38,6 +130,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { products } = await API.get('/api/products');
   const map = Object.fromEntries(products.map((p) => [p.id, p]));
   const items = lines.filter((l) => map[l.id]).map((l) => ({ ...map[l.id], qty: l.qty }));
+  if (items.length !== lines.length || items.some((item) => item.stock < item.qty)) {
+    root.innerHTML = `<div class="glass-card empty-state"><h3>Giỏ hàng cần được cập nhật</h3>
+      <p>Một số sản phẩm không còn bán hoặc không đủ số lượng. Vui lòng kiểm tra lại giỏ hàng.</p>
+      <a href="cart.html" class="btn btn-primary" style="margin-top:16px">Về giỏ hàng</a></div>`;
+    return;
+  }
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
   const shipping = subtotal >= FREE_SHIP_FROM ? 0 : SHIP_FEE;
   const total = subtotal + shipping;
@@ -97,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="summary-row total"><span>Tổng cộng</span><span>${vnd(total)}</span></div>
         </div>
         <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">🌸 Đặt hàng ngay</button>
-        <p style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:10px">🔒 Thông tin của bạn được bảo mật tuyệt đối</p>
+        <p style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:10px">🔒 Vui lòng kiểm tra thông tin trước khi đặt hàng</p>
       </div>
     </form>`;
 
@@ -117,25 +215,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btn = e.target.querySelector('button[type=submit]');
     btn.disabled = true; btn.textContent = '⏳ Đang xử lý...';
     try {
-      const { order } = await API.post('/api/orders', {
-        items: lines,
+      await withCheckoutLock(user, async () => {
+      const existing = readPending(user);
+      if (existing) { renderPending(user, existing); return; }
+      if (JSON.stringify(Cart.all()) !== JSON.stringify(lines))
+        throw new Error('Giỏ hàng đã thay đổi ở tab khác. Vui lòng tải lại trang để kiểm tra trước khi đặt hàng.');
+      const pending = { key: crypto.randomUUID(), payload: {
+        items: items.map((item) => ({ id: item.id, qty: item.qty, expectedPrice: item.price })),
+        expectedTotal: total,
         customerName: fd.get('customerName'),
         phone: fd.get('phone'),
         email: fd.get('email'),
         address: fd.get('address'),
         note: fd.get('note'),
         paymentMethod: fd.get('paymentMethod'),
+      } };
+      // If storage is unavailable, do not send a request we cannot safely retry.
+      localStorage.setItem(pendingStorageKey(user), JSON.stringify(pending));
+      try {
+        await sendPending(user, pending);
+      } catch (err) {
+        if (err.code === 'ORDER_REJECTED') {
+          clearPending(user, pending.key);
+          toast(err.message, 'error');
+          btn.disabled = false; btn.textContent = '🌸 Đặt hàng ngay';
+        } else {
+          renderPending(user, pending);
+          toast(err.code === 'ACCOUNT_CHANGED' ? err.message : 'Chưa xác định được kết quả. Vui lòng kiểm tra lại đơn cũ.', 'error');
+        }
+      }
       });
-      Cart.clear();
-      showSuccess(order, config);
     } catch (err) {
-      toast(err.message, 'error');
+      toast(err.message || 'Không thể lưu yêu cầu đặt hàng trên trình duyệt.', 'error');
       btn.disabled = false; btn.textContent = '🌸 Đặt hàng ngay';
     }
   });
+  } catch (error) {
+    root.innerHTML = `<div class="glass-card empty-state">${escapeHtml(error.message || 'Không tải được trang thanh toán. Vui lòng tải lại trang.')}</div>`;
+  }
 });
 
-function showSuccess(o, config) {
+function showSuccess(o) {
   const root = document.getElementById('checkoutRoot');
   const isCOD = o.paymentMethod === 'cod';
   root.innerHTML = `
@@ -166,7 +286,7 @@ function showSuccess(o, config) {
           <div class="copy-line"><span>Nội dung CK:</span> <code id="ndck">${o.transferNote}</code>
             <button type="button" class="mini-copy" onclick="copyText('${o.transferNote}', this)">📋 Copy</button></div>
           <div style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.6">
-            ⚠️ Vui lòng giữ nguyên nội dung <b>${o.transferNote}</b> để shop tự động đối soát.<br>
+            ⚠️ Vui lòng giữ nguyên nội dung <b>${o.transferNote}</b> để shop đối soát thủ công.<br>
             Sau khi chuyển khoản, bấm nút bên dưới để báo cho shop nhé!
           </div>
         </div>

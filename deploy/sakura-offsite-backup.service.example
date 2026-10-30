@@ -1,0 +1,8 @@
+[Unit]
+Description=Copy encrypted Sakura backups to the configured rclone remote
+
+[Service]
+Type=oneshot
+# Replace user and absolute paths with the ones configured on your server.
+User=sakura-backup
+ExecStart=/opt/sakura-music/scripts/offsite-backup.sh /opt/sakura-music/data sakura-crypt

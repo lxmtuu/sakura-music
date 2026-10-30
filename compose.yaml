@@ -1,0 +1,32 @@
+services:
+  sakura:
+    build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 15s
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    ports:
+      - "127.0.0.1:${SAKURA_HOST_PORT:-3000}:3000"
+    volumes:
+      - "${SAKURA_DATA_DIR:-./data}:/app/data"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SECRET: "${SECRET:?Set a stable SECRET in the server environment}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-}"
+      AUTO_BACKUP: "${AUTO_BACKUP:-1}"
+      BACKUP_INTERVAL_MINUTES: "${BACKUP_INTERVAL_MINUTES:-60}"
+      BACKUP_RETENTION: "${BACKUP_RETENTION:-48}"
+      SMTP_HOST: "${SMTP_HOST:-}"
+      SMTP_PORT: "${SMTP_PORT:-}"
+      SMTP_SECURE: "${SMTP_SECURE:-}"
+      SMTP_USER: "${SMTP_USER:-}"
+      SMTP_PASS: "${SMTP_PASS:-}"
+      SMTP_FROM: "${SMTP_FROM:-}"
