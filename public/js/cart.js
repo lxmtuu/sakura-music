@@ -21,6 +21,8 @@ async function renderCart() {
   const { products } = await API.get('/api/products');
   const map = Object.fromEntries(products.map((p) => [p.id, p]));
   const valid = lines.filter((l) => map[l.id]);
+  const missing = lines.filter((l) => !map[l.id]);
+  const needsUpdate = missing.length > 0 || valid.some((line) => line.qty > map[line.id].stock);
 
   let subtotal = 0;
   const rows = valid.map((l) => {
@@ -34,6 +36,7 @@ async function renderCart() {
           <div>
             <a href="product.html?id=${p.id}"><b>${escapeHtml(p.name)}</b></a>
             <small>${escapeHtml(p.brand)}</small>
+            ${l.qty > p.stock ? `<small style="color:#b91c1c">${p.stock ? `Chỉ còn ${p.stock} sản phẩm` : 'Đã hết hàng'}</small>` : ''}
           </div>
         </div>
       </td>
@@ -50,13 +53,15 @@ async function renderCart() {
     </tr>`;
   }).join('');
 
+  const missingRows = missing.map((l) => `<tr><td colspan="4">Sản phẩm không còn bán (${escapeHtml(l.id)})</td>
+      <td><button class="icon-btn" title="Xóa" onclick="Cart.remove('${l.id}');renderCart()">🗑️</button></td></tr>`).join('');
   const shipping = subtotal >= FREE_SHIP_FROM ? 0 : SHIP_FEE;
   container.innerHTML = `
     <div class="glass-card">
       <div class="table-wrap">
         <table class="cart-table">
           <thead><tr><th>Sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
+          <tbody>${rows}${missingRows}</tbody>
         </table>
       </div>
       <div class="cart-summary">
@@ -68,11 +73,15 @@ async function renderCart() {
           <div class="summary-row total"><span>Tổng cộng</span><span>${vnd(subtotal + shipping)}</span></div>
           <div style="display:flex;gap:10px;margin-top:16px">
             <a href="products.html" class="btn btn-ghost">← Tiếp tục mua</a>
-            <a href="checkout.html" class="btn btn-primary" style="flex:1">💳 Thanh toán</a>
+            ${needsUpdate ? '<span style="color:#b91c1c">Vui lòng xóa sản phẩm không còn bán hoặc điều chỉnh số lượng trước khi thanh toán.</span>' : '<a href="checkout.html" class="btn btn-primary" style="flex:1">💳 Thanh toán</a>'}
           </div>
         </div>
       </div>
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', renderCart);
+document.addEventListener('DOMContentLoaded', () => {
+  renderCart().catch(() => {
+    document.getElementById('cartContainer').innerHTML = '<div class="glass-card empty-state">Không tải được giỏ hàng. Vui lòng tải lại trang.</div>';
+  });
+});

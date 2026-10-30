@@ -13,7 +13,12 @@ const API = {
     }
     const res = await fetch(url, opts);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || 'Đã có lỗi xảy ra');
+    if (!res.ok) {
+      const error = new Error(data.message || 'Đã có lỗi xảy ra');
+      error.status = res.status;
+      error.code = data.code;
+      throw error;
+    }
     return data;
   },
   get(u) { return this.request(u); },
@@ -21,6 +26,16 @@ const API = {
   put(u, b) { return this.request(u, { method: 'PUT', body: b }); },
   del(u) { return this.request(u, { method: 'DELETE' }); },
 };
+
+// Only allow redirects within this site after authentication.
+function safeRedirect(value, fallback = 'index.html') {
+  if (!value) return fallback;
+  try {
+    const target = new URL(value, location.href);
+    if (target.origin !== location.origin || !['http:', 'https:'].includes(target.protocol)) return fallback;
+    return target.pathname + target.search + target.hash;
+  } catch { return fallback; }
+}
 
 /* ---------- Tien te VND ---------- */
 const vnd = (n) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n || 0);
@@ -33,19 +48,34 @@ const fmtDate = (iso) => {
 
 /* ---------- Gio hang localStorage ---------- */
 const Cart = {
-  all() { try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch { return []; } },
+  all() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CART_KEY));
+      if (!Array.isArray(raw)) return [];
+      const lines = new Map();
+      raw.forEach((item) => {
+        if (!item || typeof item.id !== 'string' || !/^p(?:[0-9]{2}|_[a-f0-9]{10})$/.test(item.id) ||
+            !Number.isSafeInteger(item.qty) || item.qty < 1 || item.qty > 100000) return;
+        const qty = (lines.get(item.id) || 0) + item.qty;
+        if (qty <= 100000) lines.set(item.id, qty);
+      });
+      return Array.from(lines, ([id, qty]) => ({ id, qty }));
+    } catch { return []; }
+  },
   save(items) {
     localStorage.setItem(CART_KEY, JSON.stringify(items));
     document.dispatchEvent(new CustomEvent('cart:changed'));
     this.updateBadge();
   },
   add(id, qty = 1) {
+    if (typeof id !== 'string' || !/^p(?:[0-9]{2}|_[a-f0-9]{10})$/.test(id) || !Number.isSafeInteger(qty) || qty < 1 || qty > 100000) return;
     const items = this.all();
     const found = items.find((i) => i.id === id);
-    if (found) found.qty += qty; else items.push({ id, qty });
+    if (found) found.qty = Math.min(100000, found.qty + qty); else items.push({ id, qty });
     this.save(items);
   },
   setQty(id, qty) {
+    if (!Number.isSafeInteger(qty) || qty > 100000) return;
     let items = this.all();
     if (qty <= 0) items = items.filter((i) => i.id !== id);
     else {
@@ -99,8 +129,8 @@ function fallbackImg(category) {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 function imgTag(p, cls = '', extra = '') {
-  return `<img class="${cls}" src="${p.image}" alt="${escapeHtml(p.name)}" loading="lazy"
-    onerror="this.onerror=null;this.src=fallbackImg('${(p.category || '').replace(/'/g, '')}')" ${extra}>`;
+  return `<img class="${cls}" src="${escapeHtml(p.image)}" data-category="${escapeHtml(p.category || '')}" alt="${escapeHtml(p.name)}" loading="lazy"
+    onerror="this.onerror=null;this.src=fallbackImg(this.dataset.category)" ${extra}>`;
 }
 
 /* ---------- Sao danh gia ---------- */
@@ -130,7 +160,7 @@ function productCard(p) {
         <span class="price">${vnd(p.price)}</span>
         ${p.oldPrice > p.price ? `<span class="old-price">${vnd(p.oldPrice)}</span>` : ''}
       </div>
-      <button class="btn btn-primary" onclick="quickAdd('${p.id}', event)">🎀 Thêm vào giỏ</button>
+      <button class="btn btn-primary" onclick="quickAdd('${p.id}', event)" ${p.stock <= 0 ? 'disabled' : ''}>🎀 Thêm vào giỏ</button>
     </div>
   </article>`;
 }
@@ -180,6 +210,9 @@ async function renderChrome(activePage) {
       <nav class="nav-links" id="navLinks">
         ${links.map(([href, label, key]) =>
           `<a href="${href}" class="${activePage === key ? 'active' : ''}">${label}</a>`).join('')}
+        <form class="search-box mobile-search" action="products.html" method="get">
+          <span>🔍</span><input type="search" name="q" aria-label="Tìm nhạc cụ" placeholder="Tìm nhạc cụ..." />
+        </form>
       </nav>
       <div class="nav-right">
         <form class="search-box" action="products.html" method="get">
@@ -188,7 +221,7 @@ async function renderChrome(activePage) {
         </form>
         ${u
           ? `<a href="${u.role === 'admin' ? 'admin.html' : 'account.html'}" class="user-chip">
-               <span class="avt">${u.name.charAt(0).toUpperCase()}</span>
+               <span class="avt">${escapeHtml(u.name.charAt(0).toUpperCase())}</span>
                <span class="tb-hide">${escapeHtml(u.name.split(' ').slice(-1)[0])}</span>
              </a>
              ${u.role === 'admin' ? '<a href="admin.html" class="icon-btn" title="Trang quản trị">👑</a>' : ''}

@@ -22,7 +22,7 @@ async function loadProducts() {
     b.addEventListener('click', () => { state.category = b.dataset.cat; loadProducts(); window.scrollTo({ top: 200, behavior: 'smooth' }); }));
 
   document.getElementById('resultCount').textContent =
-    `🌸 Tìm thấy ${products.length} sản phẩm` + (state.q ? ` cho "${escapeHtml(state.q)}"` : '');
+    `🌸 Tìm thấy ${products.length} sản phẩm` + (state.q ? ` cho "${state.q}"` : '');
   document.getElementById('crumbCat').textContent = state.q ? `Tìm: ${state.q}` : state.category;
 
   const grid = document.getElementById('grid');

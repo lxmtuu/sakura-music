@@ -20,9 +20,10 @@ function openModal(html) { modalBox.innerHTML = html; modal.classList.add('show'
 function closeModal() { modal.classList.remove('show'); }
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-function statusPill(s) {
+function statusPill(s, paymentMethod) {
   const m = STATUS[s] || { label: s, cls: '' };
-  return `<span class="status-pill ${m.cls}">${m.label}</span>`;
+  const label = s === 'confirmed' && paymentMethod === 'cod' ? 'Chờ xử lý COD' : m.label;
+  return `<span class="status-pill ${escapeHtml(m.cls)}">${escapeHtml(label)}</span>`;
 }
 
 /* ---------- Dang nhap BAT BUOC qua trang admin-login.html ---------- */
@@ -33,6 +34,8 @@ async function boot() {
   $('#adminAvt').textContent = user.name.charAt(0).toUpperCase();
   CONFIG = await API.get('/api/config');
   loadDashboard();
+  loadBackupStatus();
+  setInterval(loadBackupStatus, 60000);
   loadOrders();
   loadProducts();
   loadUsers();
@@ -58,6 +61,39 @@ document.querySelectorAll('.admin-nav button[data-view]').forEach((b) =>
 /* ============================================================
    DASHBOARD
    ============================================================ */
+async function loadBackupStatus() {
+  const el = $('#backupStatus');
+  try {
+    const { backup, email, proxy } = await API.get('/api/admin/system');
+    if (!backup.enabled) {
+      el.textContent = '⚠️ Sao lưu tự động đang tắt. Hãy đảm bảo có phương án sao lưu khác.';
+    } else if (backup.lastAttemptFailed || !backup.lastSuccess) {
+      el.textContent = '⚠️ Lần sao lưu gần nhất thất bại hoặc chưa có kết quả. Kiểm tra log và dung lượng lưu trữ.' +
+        (backup.lastSuccess ? ' Lần thành công trước: ' + fmtDate(backup.lastSuccess) : '');
+    } else {
+      el.textContent = `✅ Thành công gần nhất: ${fmtDate(backup.lastSuccess)}. Chu kỳ: ${backup.intervalMinutes} phút; giữ tối đa ${backup.retention} bản.`;
+    }
+    const mail = $('#emailStatus');
+    if (!email) mail.textContent = '⚠️ Không có thông tin trạng thái email.';
+    else if (email.mode === 'disabled') mail.textContent = '⚠️ SMTP chưa được cấu hình; khôi phục mật khẩu đang tắt.';
+    else if (email.mode === 'demo') mail.textContent = '⚠️ Đang bật demo: mã được trả trực tiếp qua API. Không dùng trên mạng công khai.';
+    else {
+      const accepted = email.lastAccepted ? fmtDate(email.lastAccepted) : 'chưa có';
+      const failed = email.lastFailure ? fmtDate(email.lastFailure) : 'chưa có';
+      mail.textContent = `SMTP đã cấu hình. Lần được SMTP chấp nhận: ${accepted}; lần gửi lỗi: ${failed} (trong tiến trình hiện tại).`;
+    }
+    const proxyEl = $('#proxyStatus');
+    if (!proxy) proxyEl.textContent = '⚠️ Không có thông tin cấu hình proxy.';
+    else if (!proxy.enabled) proxyEl.textContent = 'Chưa tin proxy nào. Nếu chạy sau proxy, nhiều khách có thể bị tính chung IP.';
+    else proxyEl.textContent = `Đã cấu hình ${proxy.count} địa chỉ/dải proxy tin cậy. Hãy kiểm tra lại hạ tầng và giới hạn truy cập trực tiếp.`;
+  } catch {
+    el.textContent = '⚠️ Không thể kiểm tra trạng thái sao lưu. Vui lòng tải lại hoặc kiểm tra server.';
+    $('#emailStatus').textContent = '⚠️ Không thể kiểm tra trạng thái email.';
+    $('#proxyStatus').textContent = '⚠️ Không thể kiểm tra cấu hình proxy.';
+  }
+}
+$('#refreshBackup').addEventListener('click', loadBackupStatus);
+
 async function loadDashboard() {
   const s = await API.get('/api/admin/stats');
   $('#today').textContent = '🕐 ' + new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' });
@@ -93,7 +129,8 @@ async function loadDashboard() {
       },
     });
   } else {
-    $('#catChart').closest('.panel').innerHTML += '<p style="font-size:13px;color:var(--ink-soft)">(Cần mạng để hiển thị biểu đồ Chart.js)</p>';
+    const panel = $('#catChart').closest('.panel');
+    if (!panel.querySelector('.chart-offline')) panel.insertAdjacentHTML('beforeend', '<p class="chart-offline" style="font-size:13px;color:var(--ink-soft)">(Cần mạng để hiển thị biểu đồ Chart.js)</p>');
   }
 
   // Trang thai don
@@ -117,13 +154,14 @@ async function loadDashboard() {
       <td>${escapeHtml(o.customerName)}</td>
       <td style="color:var(--pink-deep);font-weight:700;white-space:nowrap">${vnd(o.total)}</td>
       <td>${PAY_LABEL[o.paymentMethod]}</td>
-      <td>${statusPill(o.status)}</td>
+      <td>${statusPill(o.status, o.paymentMethod)}</td>
       <td style="white-space:nowrap;font-size:12.5px">${fmtDate(o.createdAt)}</td>
     </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink-soft)">Chưa có đơn hàng nào</td></tr>';
 
   const pendingTotal = (s.byStatus.pending || 0) + (s.byStatus.confirmed || 0);
   const badge = $('#navPending');
-  if (pendingTotal) { badge.style.display = 'inline-block'; badge.textContent = pendingTotal; }
+  badge.style.display = pendingTotal ? 'inline-block' : 'none';
+  badge.textContent = pendingTotal || '';
 }
 
 /* ============================================================
@@ -140,7 +178,7 @@ async function loadOrders() {
       <td style="font-size:12.5px">${o.items.length} mặt hàng<br><small>${escapeHtml(o.items.slice(0, 2).map((i) => i.name).join(', '))}${o.items.length > 2 ? '…' : ''}</small></td>
       <td style="color:var(--pink-deep);font-weight:700;white-space:nowrap">${vnd(o.total)}</td>
       <td>${PAY_LABEL[o.paymentMethod]}</td>
-      <td>${statusPill(o.status)}</td>
+      <td>${statusPill(o.status, o.paymentMethod)}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-purple btn-sm" onclick='viewOrder("${o.id}")'>👁 Xem</button>
       </td>
@@ -153,6 +191,10 @@ async function viewOrder(id) {
   const { orders } = await API.get('/api/admin/orders?status=all');
   const o = orders.find((x) => x.id === id);
   if (!o) return;
+  const next = { pending: ['confirmed', 'paid', 'cancelled'],
+    confirmed: o.paymentMethod === 'cod' ? ['shipping', 'cancelled'] : ['paid', 'cancelled'],
+    paid: ['shipping'], shipping: ['done'], done: [], cancelled: [] };
+  const choices = [o.status, ...(next[o.status] || [])];
   openModal(`
     <h3>📦 Đơn hàng ${o.code}</h3>
     <div class="detail-info">
@@ -162,7 +204,7 @@ async function viewOrder(id) {
       <div><b>Thời gian:</b> ${fmtDate(o.createdAt)}</div>
       <div style="grid-column:1/-1"><b>Địa chỉ:</b> ${escapeHtml(o.address)}</div>
       <div><b>Thanh toán:</b> ${PAY_LABEL[o.paymentMethod]}</div>
-      <div><b>Hiện trạng:</b> ${statusPill(o.status)}</div>
+      <div><b>Hiện trạng:</b> ${statusPill(o.status, o.paymentMethod)}</div>
       ${o.note ? `<div style="grid-column:1/-1"><b>Ghi chú:</b> ${escapeHtml(o.note)}</div>` : ''}
       ${o.paymentMethod !== 'cod' ? `<div style="grid-column:1/-1"><b>Nội dung CK:</b> <code style="background:#f3e8ff;padding:3px 10px;border-radius:8px">${o.transferNote}</code></div>` : ''}
     </div>
@@ -170,7 +212,7 @@ async function viewOrder(id) {
       <h4 style="margin:14px 0 6px">🎵 Sản phẩm:</h4>
       ${o.items.map((i) => `
         <div class="detail-line">
-          <img src="${i.image}" onerror="this.onerror=null;this.src=fallbackImg()">
+          <img src="${escapeHtml(i.image)}" onerror="this.onerror=null;this.src=fallbackImg()">
           <div style="flex:1">${escapeHtml(i.name)}<br><small style="color:var(--ink-soft)">${i.qty} × ${vnd(i.price)}</small></div>
           <b>${vnd(i.price * i.qty)}</b>
         </div>`).join('')}
@@ -181,7 +223,7 @@ async function viewOrder(id) {
     <div class="field" style="margin-top:16px">
       <label>🔄 Cập nhật trạng thái</label>
       <select id="statusSel" class="select-cute" style="width:100%">
-        ${Object.keys(STATUS).map((k) =>
+        ${choices.map((k) =>
           `<option value="${k}" ${o.status === k ? 'selected' : ''}>${STATUS[k].label}</option>`).join('')}
       </select>
     </div>
@@ -213,7 +255,7 @@ async function loadProducts() {
   allProducts = data.products;
   $('#productsBody').innerHTML = allProducts.map((p) => `
     <tr>
-      <td><img class="thumb" src="${p.image}" onerror="this.onerror=null;this.src=fallbackImg('${(p.category || '').replace(/'/g, '')}')"></td>
+      <td><img class="thumb" src="${escapeHtml(p.image)}" data-category="${escapeHtml(p.category || '')}" onerror="this.onerror=null;this.src=fallbackImg(this.dataset.category)"></td>
       <td style="max-width:260px"><b>${escapeHtml(p.name)}</b><br><small style="color:var(--ink-soft)">${escapeHtml(p.brand)}</small></td>
       <td>${escapeHtml(p.category)}</td>
       <td style="white-space:nowrap"><b style="color:var(--pink-deep)">${vnd(p.price)}</b>${p.oldPrice ? `<br><small style="text-decoration:line-through;color:#b3a3b8">${vnd(p.oldPrice)}</small>` : ''}</td>
@@ -297,10 +339,13 @@ async function loadUsers() {
       <td style="text-align:center">${u.orderCount}</td>
       <td style="white-space:nowrap;color:var(--pink-deep);font-weight:700">${vnd(u.totalSpent)}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-purple btn-sm" title="Đặt lại mật khẩu" onclick="resetUserPassword('${u.id}','${escapeHtml(u.email)}')">🔑 MK</button>
+        <button class="btn btn-purple btn-sm reset-user-password" title="Đặt lại mật khẩu" data-id="${escapeHtml(u.id)}" data-email="${escapeHtml(u.email)}">🔑 MK</button>
         ${u.role === 'admin' ? '' : `<button class="btn btn-danger btn-sm" title="Xóa tài khoản" onclick="deleteUser('${u.id}')">🗑️</button>`}
       </td>
     </tr>`).join('');
+  $('#usersBody').querySelectorAll('.reset-user-password').forEach((button) => {
+    button.addEventListener('click', () => resetUserPassword(button.dataset.id, button.dataset.email));
+  });
 }
 async function deleteUser(id) {
   if (!confirm('Xóa tài khoản khách hàng này?')) return;
@@ -337,7 +382,7 @@ function renderPayment() {
         <div><b>Hotline:</b> ${CONFIG.hotline}</div>
       </div>
       <div style="text-align:center;margin-top:14px">
-        <img src="https://img.vietqr.io/image/VCB-${b.accountNo}-compact2.png?accountName=${encodeURIComponent(b.accountName)}"
+        <img src="https://img.vietqr.io/image/${encodeURIComponent(b.bankCode)}-${encodeURIComponent(b.accountNo)}-compact2.png?accountName=${encodeURIComponent(b.accountName)}"
              style="width:240px;height:240px;margin:0 auto" alt="QR tài khoản" onerror="this.style.display='none'">
       </div>
     </div>

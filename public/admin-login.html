@@ -55,8 +55,8 @@
         </div>
       </form>
       <div class="admin-note">
-        <b>🎀 Tài khoản quản trị mẫu:</b><br>
-        Email: <b>admin@sakura.vn</b> &nbsp;•&nbsp; Mật khẩu: <b>admin123</b><br>
+        <b>🎀 Tài khoản quản trị:</b> admin@sakura.vn<br>
+        Mật khẩu ban đầu được cấu hình khi khởi tạo hoặc hiển thị trong log lần đầu.<br>
         ⚠️ Tài khoản khách hàng thường <b>không thể</b> truy cập khu vực này.
         Sai mật khẩu 5 lần sẽ bị tạm khóa 5 phút.
       </div>
@@ -90,7 +90,7 @@
           return;
         }
         toast('Xin chào quản trị viên 👑🌸', 'success');
-        const redirect = new URLSearchParams(location.search).get('redirect') || 'admin.html';
+        const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'), 'admin.html');
         setTimeout(() => (location.href = redirect), 700);
       } catch (err) {
         toast(err.message || 'Đăng nhập thất bại', 'error');
