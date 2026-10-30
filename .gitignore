@@ -21,3 +21,6 @@ data/.restore-*.sqlite*
 .env.*
 !.env.example
 data/.offsite-backup.lock
+
+# Build tạo riêng cho preview Vercel
+dist/

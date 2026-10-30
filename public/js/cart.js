@@ -1,8 +1,10 @@
 /* Gio hang */
 const FREE_SHIP_FROM = 2000000;
 const SHIP_FEE = 35000;
+let cartRenderVersion = 0;
 
 async function renderCart() {
+  const version = ++cartRenderVersion;
   const lines = Cart.all();
   const container = document.getElementById('cartContainer');
 
@@ -19,6 +21,7 @@ async function renderCart() {
 
   // Lay thong tin san pham tu server
   const { products } = await API.get('/api/products');
+  if (version !== cartRenderVersion) return;
   const map = Object.fromEntries(products.map((p) => [p.id, p]));
   const valid = lines.filter((l) => map[l.id]);
   const missing = lines.filter((l) => !map[l.id]);
@@ -43,18 +46,18 @@ async function renderCart() {
       <td style="white-space:nowrap">${vnd(p.price)}</td>
       <td>
         <div class="qty-stepper">
-          <button onclick="Cart.setQty('${p.id}', ${l.qty - 1});renderCart()">−</button>
-          <input value="${l.qty}" readonly style="width:46px" />
-          <button onclick="Cart.setQty('${p.id}', ${l.qty + 1});renderCart()" ${l.qty >= p.stock ? 'disabled' : ''}>+</button>
+          <button aria-label="Giảm số lượng ${escapeHtml(p.name)}" onclick="adjustCart('${p.id}', -1, ${p.stock})">−</button>
+          <input value="${l.qty}" aria-label="Số lượng ${escapeHtml(p.name)}" readonly style="width:46px" />
+          <button aria-label="Tăng số lượng ${escapeHtml(p.name)}" onclick="adjustCart('${p.id}', 1, ${p.stock})" ${l.qty >= p.stock ? 'disabled' : ''}>+</button>
         </div>
       </td>
       <td style="white-space:nowrap;font-weight:700;color:var(--pink-deep)">${vnd(p.price * l.qty)}</td>
-      <td><button class="icon-btn" title="Xóa" onclick="Cart.remove('${p.id}');renderCart()">🗑️</button></td>
+      <td><button class="icon-btn" title="Xóa" onclick="Cart.remove('${p.id}');refreshCart()">🗑️</button></td>
     </tr>`;
   }).join('');
 
   const missingRows = missing.map((l) => `<tr><td colspan="4">Sản phẩm không còn bán (${escapeHtml(l.id)})</td>
-      <td><button class="icon-btn" title="Xóa" onclick="Cart.remove('${l.id}');renderCart()">🗑️</button></td></tr>`).join('');
+      <td><button class="icon-btn" title="Xóa" onclick="Cart.remove('${l.id}');refreshCart()">🗑️</button></td></tr>`).join('');
   const shipping = subtotal >= FREE_SHIP_FROM ? 0 : SHIP_FEE;
   container.innerHTML = `
     <div class="glass-card">
@@ -80,8 +83,21 @@ async function renderCart() {
     </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function refreshCart() {
+  const version = cartRenderVersion + 1;
   renderCart().catch(() => {
+    if (version !== cartRenderVersion) return;
     document.getElementById('cartContainer').innerHTML = '<div class="glass-card empty-state">Không tải được giỏ hàng. Vui lòng tải lại trang.</div>';
   });
+}
+window.adjustCart = (id, change, stock) => {
+  const item = Cart.all().find((line) => line.id === id);
+  if (!item) return refreshCart();
+  if (change > 0 && item.qty >= stock) return refreshCart();
+  Cart.setQty(id, item.qty + change);
+  refreshCart();
+};
+document.addEventListener('DOMContentLoaded', refreshCart);
+window.addEventListener('storage', (event) => {
+  if (event.key === CART_KEY || event.key === null) refreshCart();
 });

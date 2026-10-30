@@ -658,3 +658,82 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
 @media (max-width: 360px) {
   .nav .logo b { display: none; }
 }
+
+/* Bố cục tinh gọn và dễ thao tác trên mọi kích thước màn hình */
+#header { position: sticky; top: -36px; z-index: 45; }
+.site-header { position: relative; }
+:where(a, button, input, select, textarea):focus-visible { outline: 3px solid #7040d9; outline-offset: 3px; }
+.hero { min-height: 610px; }
+.hero::after { background: linear-gradient(90deg, rgba(40,20,55,.88) 0%, rgba(69,28,80,.72) 38%, rgba(83,35,91,.2) 100%); }
+.hero-inner { max-width: 1200px; padding: 90px 0; }
+.hero h1 { max-width: 650px; font-size: clamp(38px, 4.2vw, 60px); letter-spacing: -.035em; }
+.hero p { max-width: 530px; }
+.hero-secondary { color: #fff; border: 1px solid rgba(255,255,255,.7); background: rgba(255,255,255,.12); backdrop-filter: blur(8px); }
+.hero-secondary:hover { background: rgba(255,255,255,.24); transform: translateY(-2px); }
+.hero-stats { gap: 0; }
+.hero-stats > div { padding: 0 24px; border-left: 1px solid rgba(255,255,255,.32); }
+.hero-stats > div:first-child { padding-left: 0; border-left: 0; }
+.hero-stats .n { font-size: 22px; }
+.cat-card { padding: 24px 12px; }
+.product-card { transition: transform .25s, box-shadow .25s, border-color .25s; }
+.product-card:hover { transform: translateY(-5px); }
+.product-card:hover .product-thumb img { transform: scale(1.05); }
+.shop-toolbar { min-height: 44px; }
+#grid[aria-busy="true"] { opacity: .65; }
+@media (max-width: 980px) {
+  .shop-layout { gap: 18px; }
+  .shop-sidebar { padding: 16px; }
+  .shop-sidebar h4 { margin-bottom: 8px; }
+  .cat-filter { flex-direction: row; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px 2px 10px; }
+  .cat-filter button { white-space: nowrap; width: auto; flex: 0 0 auto; border: 1px solid #f2d6e6; background: rgba(255,255,255,.7); }
+  .shop-sidebar h4[style] { display: none !important; }
+  .shop-sidebar #resetBtn { width: auto; margin-top: 2px !important; }
+}
+@media (max-width: 620px) {
+  .hero { min-height: 580px; }
+  .hero-inner { padding: 60px 0; }
+  .hero h1 { font-size: clamp(30px, 9vw, 40px); }
+  .hero p { font-size: 15px; }
+  .hero-stats { margin-top: 30px; }
+  .hero-stats > div { padding: 0 12px; }
+  .hero-stats .l { font-size: 11px; }
+  .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .product-thumb img { padding: 8px; }
+  .product-info { padding: 12px; }
+  .product-info .btn { font-size: 12px; }
+  .product-name { font-size: 13px; height: 38px; }
+  .price { font-size: 15px; }
+  .floating-social { right: 10px; bottom: 12px; }
+  .floating-social a:not(:first-child) { display: none; }
+  .cart-table td { border: 0; padding: 7px 6px; }
+  .cart-table td:nth-child(2)::before { content: 'Đơn giá: '; color: var(--ink-soft); }
+  .cart-table td:nth-child(4)::before { content: 'Thành tiền: '; color: var(--ink-soft); font-weight: 500; }
+  .cart-summary > .summary-box > div:last-child { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (hover: none) {
+  html { scroll-behavior: auto; }
+  .product-card:hover, .btn:hover, .icon-btn:hover { transform: none; }
+  .product-card:hover .product-thumb img { transform: none; }
+}
+@media (max-width: 980px) {
+  .shop-layout { grid-template-columns: minmax(0, 1fr); }
+  .shop-sidebar, .shop-layout > div { min-width: 0; }
+}
+@media (max-width: 980px) {
+  .admin-side { padding: 16px; overflow: hidden; }
+  .admin-side .logo { margin-bottom: 14px; font-size: 22px; }
+  .admin-nav { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; }
+  .admin-nav button { flex: 0 0 auto; white-space: nowrap; margin-bottom: 0; }
+  .admin-side .admin-foot { margin-top: 12px; padding-top: 12px; }
+}
+@media (max-width: 620px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat-card { padding: 16px; }
+  .stat-card .v { font-size: 22px; }
+  .stat-card .k { font-size: 12px; }
+  .panel { padding: 16px; }
+}

@@ -137,19 +137,58 @@ async function main() {
     await admin.locator('#modalMask').waitFor({ state: 'hidden' });
     await admin.locator('#productsBody').getByText('Sản phẩm kiểm thử').waitFor();
 
+    // A slower filter response must never replace a newer selection.
+    const filters = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await filters.goto(base + '/products.html');
+    await filters.locator('#catFilter button').first().waitFor();
+    let releaseOld, oldStarted;
+    const oldBlocked = new Promise(resolve => { releaseOld = resolve; });
+    const oldSeen = new Promise(resolve => { oldStarted = resolve; });
+    await filters.route('**/api/products?*', async route => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('category') === 'Guitar') { oldStarted(); await oldBlocked; }
+      await route.continue();
+    });
+    await filters.locator('#catFilter button[data-cat="Guitar"]').click();
+    await oldSeen;
+    await filters.locator('#catFilter button[data-cat="Piano & Keyboard"]').click();
+    await filters.locator('#catFilter button[data-cat="Piano & Keyboard"][aria-pressed=true]').waitFor();
+    releaseOld();
+    await filters.waitForTimeout(150);
+    assert.equal(await filters.locator('#crumbCat').textContent(), 'Piano & Keyboard');
+    await filters.selectOption('#sortSel', 'price-desc');
+    await filters.locator('#resetBtn').click();
+    assert.equal(await filters.locator('#sortSel').inputValue(), 'rating');
+    await filters.close();
+
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     await mobile.route('**/*', route => route.request().url().startsWith(base) || route.request().url().startsWith('data:') ? route.continue() : route.abort());
     const phone = await mobile.newPage();
     phone.on('pageerror', error => errors.push(error.message));
     await phone.goto(base + '/products.html');
     await phone.locator('.menu-toggle').click();
+    assert.equal(await phone.locator('.menu-toggle').getAttribute('aria-expanded'), 'true');
+    await phone.keyboard.press('Escape');
+    assert.equal(await phone.locator('.menu-toggle').getAttribute('aria-expanded'), 'false');
+    await phone.locator('.menu-toggle').click();
     await phone.locator('.mobile-search input').fill('Yamaha');
     await phone.locator('.mobile-search input').press('Enter');
     await phone.waitForURL('**/products.html?q=Yamaha');
     await phone.locator('#grid .product-card').first().waitFor();
+    const productOverflow = await phone.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+    assert.ok(productOverflow.width <= productOverflow.viewport + 1, `mobile products overflow: ${JSON.stringify(productOverflow)}`);
     await phone.locator('#grid .product-card').first().locator('button').click();
     await phone.goto(base + '/cart.html');
     await phone.locator('.cart-table tbody tr').first().waitFor();
+    const otherCart = await mobile.newPage();
+    await otherCart.goto(base + '/products.html');
+    await otherCart.locator('#grid .product-card').first().waitFor();
+    const itemId = await phone.evaluate(() => JSON.parse(localStorage.getItem('sakura_cart_v1'))[0].id);
+    await otherCart.evaluate(id => { const items = JSON.parse(localStorage.getItem('sakura_cart_v1')); items[0].qty = 2; localStorage.setItem('sakura_cart_v1', JSON.stringify(items)); }, itemId);
+    await phone.locator('.qty-stepper input[value="2"]').waitFor();
+    await otherCart.evaluate(() => { const items = JSON.parse(localStorage.getItem('sakura_cart_v1')); items[0].qty = 1; localStorage.setItem('sakura_cart_v1', JSON.stringify(items)); });
+    await phone.locator('.qty-stepper input[value="1"]').waitFor();
+    await otherCart.close();
     await phone.locator('a[href="checkout.html"]').last().click();
     await phone.getByRole('link', { name: 'Đăng nhập', exact: true }).click();
     await phone.fill('[name=email]', 'khach@example.com');

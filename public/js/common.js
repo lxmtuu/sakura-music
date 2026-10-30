@@ -217,7 +217,7 @@ async function renderChrome(activePage) {
       <div class="nav-right">
         <form class="search-box" action="products.html" method="get">
           <span>🔍</span>
-          <input type="text" name="q" placeholder="Tìm nhạc cụ..." />
+          <input type="search" name="q" aria-label="Tìm nhạc cụ" placeholder="Tìm nhạc cụ..." />
         </form>
         ${u
           ? `<a href="${u.role === 'admin' ? 'admin.html' : 'account.html'}" class="user-chip">
@@ -228,7 +228,7 @@ async function renderChrome(activePage) {
              <button class="icon-btn" onclick="doLogout()" title="Đăng xuất">🚪</button>`
           : `<a href="login.html" class="icon-btn" title="Đăng nhập">👤</a>`}
         <a href="cart.html" class="icon-btn" title="Giỏ hàng">🛒<span class="cart-badge" style="display:none">0</span></a>
-        <button class="icon-btn menu-toggle" onclick="document.getElementById('navLinks').classList.toggle('open')">☰</button>
+        <button class="icon-btn menu-toggle" type="button" aria-label="Mở menu" aria-controls="navLinks" aria-expanded="false">☰</button>
       </div>
     </div>
   </header>`;
@@ -292,6 +292,22 @@ async function renderChrome(activePage) {
   const footerSlot = document.getElementById('footer');
   if (headerSlot) headerSlot.innerHTML = headerHtml;
   if (footerSlot) footerSlot.innerHTML = footerHtml;
+  const toggle = headerSlot?.querySelector('.menu-toggle');
+  const nav = headerSlot?.querySelector('#navLinks');
+  if (toggle && nav) {
+    const setMenu = (open) => {
+      nav.classList.toggle('open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Đóng menu' : 'Mở menu');
+    };
+    toggle.addEventListener('click', () => setMenu(!nav.classList.contains('open')));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && nav.classList.contains('open')) { setMenu(false); toggle.focus(); }
+    });
+    document.addEventListener('click', (event) => {
+      if (!headerSlot.contains(event.target) && nav.classList.contains('open')) setMenu(false);
+    });
+  }
   Cart.updateBadge();
   return { user: u, config };
 }
@@ -304,8 +320,10 @@ window.doLogout = doLogout;
 
 /* ---------- Hieu ung hoa anh dao + not nhac ---------- */
 function initFx() {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   const layer = document.createElement('div');
   layer.className = 'fx-layer';
+  layer.setAttribute('aria-hidden', 'true');
   const petals = ['🌸', '🌺', '🌸', '💮', '🌸'];
   for (let i = 0; i < 16; i++) {
     const p = document.createElement('span');
@@ -339,4 +357,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderChrome(page);
     initFx();
   }
+});
+
+window.addEventListener('storage', (event) => {
+  if (event.key === CART_KEY || event.key === null) Cart.updateBadge();
 });

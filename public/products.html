@@ -28,14 +28,14 @@
 
       <div>
         <div class="shop-toolbar">
-          <span class="count" id="resultCount"></span>
-          <select class="select-cute" id="sortSel">
+          <span class="count" id="resultCount" role="status" aria-live="polite"></span>
+          <select class="select-cute" id="sortSel" aria-label="Sắp xếp sản phẩm">
             <option value="rating">⭐ Nổi bật nhất</option>
             <option value="price-asc">💰 Giá: Thấp → Cao</option>
             <option value="price-desc">💎 Giá: Cao → Thấp</option>
           </select>
         </div>
-        <div class="product-grid" id="grid">
+        <div class="product-grid" id="grid" aria-busy="true">
           <div class="empty-state"><div class="big">🎶</div>Đang tải...</div>
         </div>
       </div>
