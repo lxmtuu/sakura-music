@@ -97,9 +97,9 @@ admin ngay và xóa/đổi mật khẩu tài khoản demo nếu có. Không xóa
 
 ### Phía khách hàng
 - ✅ Trang chủ: banner anime, danh mục, sản phẩm bán chạy, khuyến mãi, chính sách
-- ✅ Danh sách sản phẩm: tìm kiếm, lọc theo danh mục, sắp xếp theo giá / đánh giá
+- ✅ Danh sách sản phẩm: tìm kiếm, lọc theo danh mục, sắp xếp theo giá / đánh giá; lựa chọn mới nhất không bị kết quả tải chậm ghi đè
 - ✅ Trang chi tiết sản phẩm: ảnh, mô tả, sao đánh giá, chọn số lượng, mua ngay
-- ✼ Giỏ hàng lưu trên trình duyệt (localStorage), cập nhật số lượng, phí ship, freeship từ 2 triệu
+- ✼ Giỏ hàng lưu trên trình duyệt (localStorage), đồng bộ hiển thị giữa các tab cùng trình duyệt, cập nhật số lượng, phí ship, freeship từ 2 triệu
 - ✅ **Đăng ký / Đăng nhập / Đăng xuất** (mật khẩu mã hóa bcrypt, phiên đăng nhập)
 - ✅ **Quên mật khẩu**: sau khi cấu hình SMTP, nhận mã 6 số (hiệu lực 15 phút) → đặt mật khẩu mới; mỗi mã chỉ dùng 1 lần
 - ✅ Giới hạn yêu cầu đăng nhập và khôi phục mật khẩu theo IP/email; xem các ngưỡng và lưu ý proxy tại mục 9 và 12.
