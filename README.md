@@ -307,3 +307,7 @@ Xem [hướng dẫn Docker và Dropbox](docs/docker-dropbox.md) để chạy m�
 ---
 
 🌸 **Chúc cậu bán được thật nhiều đàn!** 🎸🎹🎻
+
+## 🌐 Preview giao diện trên Vercel
+
+Dự án Vercel preview dùng `node vercel-preview/build.js` để tạo `dist/` từ giao diện và dữ liệu sản phẩm mẫu. Đây là bản tĩnh chỉ để xem: tìm kiếm, lọc, xem sản phẩm và giỏ hàng lưu trong trình duyệt hoạt động, còn đăng nhập, quản trị, đặt hàng và thanh toán bị tắt. Không có cơ sở dữ liệu hay kết nối ngân hàng; không sử dụng bản này để bán hàng thật. Server SQLite và dữ liệu thật không được đưa vào bản build. Để vận hành thật trên Vercel cần thiết kế lại lưu trữ bền vững và kiểm thử riêng.
